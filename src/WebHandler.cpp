@@ -1,7 +1,11 @@
 // WebHandler.cpp
 
 #include "WebHandler.h"
-#include <ACAN_ESP32.h>
+#include <SPI.h>
+#include <ACAN2515.h>
+#include "Settings.h"
+
+extern ACAN2515 canService;   // Import du CAN Service MCP2515
 
 WebHandler::WebHandler() : _server(nullptr), _ws(nullptr) {}
 
@@ -42,104 +46,100 @@ void WebHandler::_WsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, 
   case WS_EVT_CONNECT:
     Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
     break;
+
   case WS_EVT_DISCONNECT:
     Serial.printf("WebSocket client #%u disconnected\n", client->id());
     break;
 
-  case WS_EVT_ERROR:
-    //
-    break;
-  case WS_EVT_PONG:
-    //
-    break;
   case WS_EVT_DATA:
-    // WebHandler::handleWebSocketMessage(arg, data, len);
-    // Serial.printf("WebSocket arg %d\n", arg);
-    // Serial.printf("WebSocket len %d\n", len);
-    // Serial.printf("WebSocket data %s\n", data);
-
-    StaticJsonDocument<1024> doc1; // Memory pool
+  {
+    StaticJsonDocument<1024> doc1;
     DeserializationError error = deserializeJson(doc1, data);
 
-    if (error) // Check for errors in parsing
+    if (error)
+    {
 #ifdef DEBUG
       debug.println("Parsing failed");
 #endif
+    }
     else
     {
       String message = (char *)data;
 
+      // --- WIFI ON/OFF ---
       if (message.indexOf("wifi_on") >= 0)
       {
-        bool wifi_on = doc1["wifi_on"][0];
-        Settings::WIFI_ON = wifi_on;
+        Settings::WIFI_ON = doc1["wifi_on"][0];
 
         CANMessage frame;
-        frame.id |= 2 << 25;    // Priorite 0, 1 ou 2
-        frame.id |= 0xBD << 17; // commande appelée
-        frame.id |= 254;        // ID expediteur
+        frame.id |= 2 << 25;
+        frame.id |= 0xBD << 17;
+        frame.id |= 254;
         frame.ext = true;
         frame.len = 1;
-        if(Settings::WIFI_ON)
-        	frame.data[0] = 1;
-    	else
-    		frame.data[0] = 0;
-        const bool ok = ACAN_ESP32::can.tryToSend(frame);
+        frame.data[0] = Settings::WIFI_ON ? 1 : 0;
+
+        canService.tryToSend(frame);
+
 #ifdef DEBUG
-        debug.printf(Settings::WIFI_ON ? "Wifi : on" : "Wifi : off");
-        debug.printf("\n");
+        debug.printf(Settings::WIFI_ON ? "Wifi : on\n" : "Wifi : off\n");
 #endif
       }
 
+      // --- DISCOVERY ON/OFF ---
       if (message.indexOf("discovery_on") >= 0)
       {
-        bool discovery_on = doc1["discovery_on"][0];
-        Settings::DISCOVERY_ON = discovery_on;
+        Settings::DISCOVERY_ON = doc1["discovery_on"][0];
 
         CANMessage frame;
-        frame.id |= 2 << 25;    // Priorite 0, 1 ou 2
-        frame.id |= 0xBE << 17; // commande appelée
-        frame.id |= 254;  // ID expediteur
+        frame.id |= 2 << 25;
+        frame.id |= 0xBE << 17;
+        frame.id |= 254;
         frame.ext = true;
         frame.len = 1;
         frame.data[0] = Settings::DISCOVERY_ON;
-        const bool ok = ACAN_ESP32::can.tryToSend(frame);
+
+        canService.tryToSend(frame);
 
 #ifdef DEBUG
-        debug.printf(Settings::DISCOVERY_ON ? "Discovery : on" : "Discovery : off");
-        debug.printf("\n");
+        debug.printf(Settings::DISCOVERY_ON ? "Discovery : on\n" : "Discovery : off\n");
 #endif
       }
 
+      // --- SAVE ---
       if (message.indexOf("save") >= 0)
       {
 #ifdef DEBUG
         debug.println("save all");
 #endif
         CANMessage frame;
-        frame.id |= 2 << 25;    // Priorite 0, 1 ou 2
-        frame.id |= 0xBF << 17; // commande appelée
-        frame.id |= 254;  // ID expediteur
+        frame.id |= 2 << 25;
+        frame.id |= 0xBF << 17;
+        frame.id |= 254;
         frame.ext = true;
         frame.len = 0;
-        const bool ok = ACAN_ESP32::can.tryToSend(frame);
+
+        canService.tryToSend(frame);
       }
 
+      // --- RESTART ---
       if (message.indexOf("restartEsp") >= 0)
       {
 #ifdef DEBUG
         debug.println("restartEsp");
 #endif
         CANMessage frame;
-        frame.id |= 2 << 25;    // Priorite 0, 1 ou 2
-        frame.id |= 0xBC << 17; // commande appelée
-        frame.id |= 254;  // ID expediteur
+        frame.id |= 2 << 25;
+        frame.id |= 0xBC << 17;
+        frame.id |= 254;
         frame.ext = true;
         frame.len = 0;
-        const bool ok = ACAN_ESP32::can.tryToSend(frame);
+
+        canService.tryToSend(frame);
       }
     }
-    break;
+  }
+  break;
   }
 }
 
@@ -150,7 +150,6 @@ void WebHandler::notifyClients()
 
 void WebHandler::route()
 {
-  // Route for root / web page
   _server->on("/", HTTP_GET, [](AsyncWebServerRequest *request)
               { request->send(SPIFFS, "/index.html", "text/html"); });
 
@@ -171,6 +170,7 @@ void WebHandler::route()
 
   _server->onNotFound([](AsyncWebServerRequest *request)
                       {
-    Serial.printf("Not found: %s!\r\n", request->url().c_str());
-    request->send(404); });
+                        Serial.printf("Not found: %s!\r\n", request->url().c_str());
+                        request->send(404);
+                      });
 }

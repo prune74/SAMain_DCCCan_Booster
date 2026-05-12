@@ -1,13 +1,10 @@
-/*
-
-
-*/
-
 #ifndef __CONFIG__
 #define __CONFIG__
 
 #include <Arduino.h>
-#include <ACAN_ESP32.h>
+
+// Le CAN Service utilise un MCP2515
+#include <ACAN2515.h>
 
 #define DEBUG
 
@@ -21,7 +18,6 @@
 #define DEBUG
 #define debug Serial
 
-
 /* ----- Wifi --------------------*/
 
 #define CONFIG 1 // Selection du mode
@@ -34,8 +30,6 @@
 #elif CONFIG == 1
 #define WIFI_SSID "Starlink Olivier"
 #define WIFI_PSW "VF4Ba.C-9M9FWprX"
-
-
 
 #endif
 
