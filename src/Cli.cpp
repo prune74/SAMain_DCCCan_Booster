@@ -2,9 +2,7 @@
 #include "config.h"
 #include "DccDecoder.h"
 #include <ESP.h>   // nécessaire pour ESP.restart()
-
-extern volatile bool canMonitorEnabled;
-extern volatile int32_t canMonitorFilter;
+#include "CanMonitor.h"
 
 static String input;
 

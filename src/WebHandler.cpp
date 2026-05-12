@@ -5,8 +5,7 @@
 #include <SPI.h>
 #include <ACAN2515.h>
 #include "Settings.h"
-
-extern ACAN2515 canService;   // CAN Service MCP2515
+#include "CanService.h"
 
 // Mode Web actif (désactivé automatiquement si aucun client)
 static bool webActive = false;
@@ -84,7 +83,7 @@ void WebHandler::_WsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
 
     case WS_EVT_DATA:
     {
-        StaticJsonDocument<256> doc;   // Optimisé : 256 suffit largement
+        StaticJsonDocument<256> doc;
         DeserializationError error = deserializeJson(doc, data);
 
         if (error) {
@@ -107,7 +106,7 @@ void WebHandler::_WsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
             frame.len = 1;
             frame.data[0] = Settings::WIFI_ON ? 1 : 0;
 
-            canService.tryToSend(frame);
+            CanService::send(frame);   // ← CORRIGÉ
         }
 
         // --- DISCOVERY ON/OFF ---
@@ -123,7 +122,7 @@ void WebHandler::_WsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
             frame.len = 1;
             frame.data[0] = Settings::DISCOVERY_ON;
 
-            canService.tryToSend(frame);
+            CanService::send(frame);   // ← CORRIGÉ
         }
 
         // --- SAVE ---
@@ -136,7 +135,7 @@ void WebHandler::_WsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
             frame.ext = true;
             frame.len = 0;
 
-            canService.tryToSend(frame);
+            CanService::send(frame);   // ← CORRIGÉ
         }
 
         // --- RESTART ---
@@ -149,7 +148,7 @@ void WebHandler::_WsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
             frame.ext = true;
             frame.len = 0;
 
-            canService.tryToSend(frame);
+            CanService::send(frame);   // ← CORRIGÉ
         }
     }
     break;
@@ -158,7 +157,6 @@ void WebHandler::_WsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
 
 void WebHandler::notifyClients()
 {
-    // Throttle : max 5 Hz
     static uint32_t last = 0;
     if (millis() - last < 200) return;
     last = millis();
