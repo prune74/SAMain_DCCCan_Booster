@@ -1,6 +1,6 @@
-#ifndef __CONFIG__
-#define __CONFIG__
+#pragma once
 
+#include "DCCB_Profile_Discovery2026.h"
 #include <Arduino.h>
 
 // Le CAN Service utilise un MCP2515
@@ -30,7 +30,5 @@
 #elif CONFIG == 1
 #define WIFI_SSID "Starlink Olivier"
 #define WIFI_PSW "VF4Ba.C-9M9FWprX"
-
-#endif
 
 #endif
