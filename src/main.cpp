@@ -196,7 +196,7 @@ void setup()
     // -----------------------------------------------------------------------
     xTaskCreatePinnedToCore(taskDcc,   "DCC",    4096, nullptr, 2, &taskDccHandle,   0);
     xTaskCreatePinnedToCore(taskCan,   "CAN",    4096, nullptr, 3, &taskCanHandle,   1);
-    xTaskCreatePinnedToCore(taskCanRx, "CAN_RX", 4096, nullptr, 1, &taskCanRxHandle, 1);
+    xTaskCreatePinnedToCore(taskCanRx, "CAN_RX", 4096, nullptr, 1, &taskCanRxHandle, 0);
 }
 
 // ---------------------------------------------------------------------------
