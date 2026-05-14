@@ -2,4 +2,6 @@
 
 void startSystemTasks();
 
-void taskCanRx(void *pvParameters);
+void taskDcc(void *pvParameters);
+void taskCan(void *pvParameters);
+void taskSave(void *pvParameters);
